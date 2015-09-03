@@ -1,0 +1,35 @@
+{
+  "name": "helium.js",
+  "version": "0.0.1",
+  "homepage": "https://github.com/Shakup/helium.js",
+  "authors": [
+    "Sébastien Decamme <sebastien.decamme@gmail.com>"
+  ],
+  "description": "An elegant framework to build rich applications",
+  "main": "dist/helium.js",
+  "moduleType": [
+    "amd"
+  ],
+  "keywords": [
+    "javascript",
+    "framework",
+    "library",
+    "lighweight",
+    "modern",
+    "lea",
+    "application"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "src",
+    "test",
+    "doc",
+    "logo",
+    "Gruntfile.js",
+    "package.json",
+    "bower.json"
+  ]
+}

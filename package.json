@@ -1,0 +1,36 @@
+{
+  "name": "helium.js",
+  "version": "0.0.1",
+  "description": "An elegant framework to build rich applications",
+  "main": "dist/helium.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Shakup/helium.js.git"
+  },
+  "keywords": [
+    "javascript",
+    "framework",
+    "library",
+    "lighweight",
+    "modern",
+    "lea",
+    "application"
+  ],
+  "author": "Sébastien Decamme <sebastien.decamme@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Shakup/helium.js/issues"
+  },
+  "homepage": "https://github.com/Shakup/helium.js",
+  "devDependencies": {
+    "grunt": "latest",
+    "grunt-banner": "^0.4.0",
+    "grunt-contrib-uglify": "~0.8.0",
+    "grunt-contrib-watch": "latest",
+    "grunt-notify": "^0.4.1",
+    "grunt-text-replace": "^0.4.0"
+  }
+}
