@@ -1,5 +1,5 @@
-# lea.evolution.js
-> An elegant lea.js plugin to build rich Web applications
+# helium.js
+> An elegant framework to build rich applications
 
 **Work in progress**
 
