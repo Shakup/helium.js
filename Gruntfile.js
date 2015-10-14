@@ -8,7 +8,7 @@ module.exports = function(grunt){
 			' * <%= pkg.description %>\n' +
 			' * Author: <%= pkg.author %>\n' +
 			' * Homepage: <%= pkg.homepage %>\n' +
-			' */',
+			' */\n',
 		
 		usebanner: {
 			dist: {
@@ -17,23 +17,19 @@ module.exports = function(grunt){
 					banner: '<%= banner %>'
 				},
 				files: {
-					src: ['dist/lea.evolution.js']
+					src: ['dist/helium.js', 'dist/helium.min.js']
 				}
 			}
 		},
 
 		replace: {
 			dist: {
-				src: ['dist/lea.evolution.js'],
+				src: ['dist/helium.js'],
 				overwrite: true,
 				replacements: [
 					{
 						from: '{{version}}',
 						to: '<%= pkg.version %>'
-					},
-					{
-						from: '{{homepage}}',
-						to: '<%= pkg.homepage %>'
 					}
 				]
 			}
@@ -46,15 +42,35 @@ module.exports = function(grunt){
 			},
 			dist: {
 				files: {
-					'dist/lea.evolution.js': ['src/*.js']
+					'dist/helium.min.js': ['dist/helium.js']
 				}
+			}
+		},
+
+		includes: {
+			files: {
+				src: ['src/helium.js'],
+				dest: 'dist/helium.js',
+				flatten: true,
+				cwd: '.',
+			}
+		},
+
+		copy: {
+			test: {
+				files: [
+					{
+						src: 'dist/helium.js',
+						dest: 'test/assets/js/libs/helium.js',
+					}
+				]
 			}
 		},
 
 		watch: {
 			scripts: {
 				files: ['src/*.js'],
-				tasks: ['uglify','usebanner','replace']
+				tasks: ['includes', 'uglify', 'replace', 'usebanner', 'copy:test']
 			}
 		},
 
@@ -62,9 +78,9 @@ module.exports = function(grunt){
 			options: {
 				enabled: true,
 				max_jshint_notifications: 2,
-				title: "Lea.evolution.js",
+				title: "helium.js",
 				success: true,
-				duration: 2
+				duration: 1
 			}
 		}
 	});
@@ -74,8 +90,10 @@ module.exports = function(grunt){
 	grunt.loadNpmTasks('grunt-banner');
 	grunt.loadNpmTasks('grunt-text-replace');
 	grunt.loadNpmTasks('grunt-notify');
+	grunt.loadNpmTasks('grunt-contrib-copy');
+	grunt.loadNpmTasks('grunt-includes');
 
 	grunt.task.run('notify_hooks');
 	
-	grunt.registerTask('default', ['uglify','usebanner','replace']);
+	grunt.registerTask('default', ['includes', 'uglify', 'replace', 'usebanner', 'copy:test']);
 }
