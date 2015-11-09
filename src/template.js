@@ -25,6 +25,20 @@ Template.prototype.afterLoad = function (fnc) {
 	return this;
 }
 
+Template.prototype._retrieve = function (data) {
+	if ( $.type(data) !== "string") return data;
+
+	var prefix = data.substr(0, 1);
+	
+	return prefix == "@" ? He.data.get( data.substr(1) ) : data;
+}
+
+Template.prototype._cleanMatch = function (arr) {
+	return arr.filter(function (item) {
+		return $.type(item) !== "undefined";
+	});
+}
+
 Template.prototype._extractCondition = function (value) {
 	var 
 		reg    = /(\@[^\=\s]+)(\=([^:]+)\?([^:]+)(\:(.+))?)?/,
@@ -48,49 +62,96 @@ Template.prototype._extractCondition = function (value) {
 	} else return null;
 }
 
-Template.prototype._retrieve = function (data) {
-	if ( $.type(data) !== "string") return data;
+Template.prototype.applyTags = function (container) {
+	var self = this;
 
-	var prefix = data.substr(0, 1);
-	
-	return prefix == "@" ? He.data.get( data.substr(1) ) : data;
+	$(container).find("[he-link]").click(function (event) {
+		event.preventDefault();
+		He.router.goTo( $(this).attr("he-link") );
+	});
 }
 
-Template.prototype._cleanMatch = function (arr) {
-	return arr.filter(function(item) {
-		return $.type(item) !== "undefined";
-	});
+Template.prototype.load = function (template, cache) {
+	var self = this;
+
+	if (cache == undefined) {
+		cache = false;
+	}
+
+	function Loader (template) {
+		var
+			_self = this,
+			store;
+
+		if ( self._loaderXHR !== null ) {
+			self._loaderXHR.abort();
+		}
+
+		function genStoreKey(str) {
+			return str.replace(/[\._]*/g, "-");
+		}
+
+		this._success = function () {};
+		this._error   = function () {};
+
+		if ( cache == true && ("localStorage" in window) ) {
+
+			store = localStorage.getItem( genStoreKey(template) );
+
+			if (store) {
+				self._afterLoad(store);
+				this._success(store);
+				return this;
+			}
+
+		} else {
+			cache = false;
+		}
+
+		self._loaderXHR = $.get( self.baseDir + template )
+			.success(function (response) {
+
+				if (cache == true) {
+					localStorage.setItem( genStoreKey(template), response );
+				}
+
+				self._afterLoad(response);
+				_self._success(response);
+			})
+			.error(function () {
+				self._errorLoad();
+				_self._error();
+			});
+
+		return this;
+	}
+
+	Loader.prototype.success = function (fnc) {
+		this._success = fnc;
+		return this;
+	}
+
+	Loader.prototype.error = function (fnc) {
+		this._error = fnc;
+		return this;
+	}
+
+	this._beforeLoad();
+
+	return new Loader(template);
 }
 
 Template.prototype._bindHtml = function (value) {
 	var
 		self = this,
-		fnc, data, condition, bindId;
+		fnc, data, bindId;
 
-	condition = this._extractCondition(value);
-
-	if (!condition) return "";
-
-	if (condition.compare) {
-		fnc = function (data, value, id, options) {
-			value           = self._retrieve(value);
-			options.compare = self._retrieve(options.compare);
-			options.then    = self._retrieve(options.then);
-			options.else    = self._retrieve(options.else);
-
-			var html = value == options.compare ? options.then : (options.else ? options.else : "");
-
-			$("[he-bind=\"" + id + "\"]").html(html);
-		}
-	} else {
-		fnc = function (data, value, id, options) {
-			var html = self._retrieve(value);
-			$("[he-bind=\"" + id + "\"]").html(html);
-		}
+	fnc = function (data, value, id) {
+		var html = self._retrieve(value);
+		$("[he-bind=\"" + id + "\"]").html(html);
 	}
 
-	data   = condition.ref.substr(1);
-	bindId = He.data.bind(data, fnc, condition);
+	bindId = He.data.bind(value, fnc);
 
 	return "he-bind=\"" + bindId + "\"";
 }
@@ -132,6 +193,100 @@ Template.prototype._bindAttr = function (attr, value) {
 	bindId         = He.data.bind(data, fnc, condition);
 
 	return attr + "=\"" + attrValue + "\" he-bind=\"" + bindId + "\"";
+}
+
+Template.prototype._assignHelpers = function () {
+	var self = this;
+
+	Handlebars.registerHelper("link", function (route, options) {
+
+		var
+			data   = options.hash,
+			route  = route || "index",
+			anchor = "<a href=\"" + He.router.getUrl(route) + "\" he-link=\"" + route + "\"",
+			inner  = options.fn(this);
+
+		for (name in data) {
+			if (name === "route") continue;
+			anchor += " " + name + "=\"" + data[name] + "\"";
+		}
+
+		anchor += ">" + inner + "</a>";
+
+		return anchor;
+
+	});
+
+	Handlebars.registerHelper("bind-attr", function (options) {
+		var
+			data = options.hash,
+			attr, output;
+
+		for (attr in data) break;
+
+		output = self._bindAttr( attr, data[attr] );
+
+		return new Handlebars.SafeString(output);
+	});
+
+	Handlebars.registerHelper("bind-html", function (data) {
+		var output = self._bindHtml(data);
+
+		return new Handlebars.SafeString(output);
+	});
+
+}
+
+Template.prototype.run = function () {
+	var self = this;
+
+	this._assignHelpers();
+
+	$("[he-template]").each(function () {
+		var $container = $(this), tpl;
+
+		var $c = $("#" + $container.attr("he-template") );
+
+		tpl = Handlebars.compile( $("#" + $container.attr("he-template")).text() )
+		
+		$container.html( tpl(He.data._data) );
+		
+		self.applyTags(this);
+	});
+}
+
+/*
+Template.prototype._bindHtml = function (value) {
+	var
+		self = this,
+		fnc, data, condition, bindId;
+
+	condition = this._extractCondition(value);
+
+	if (!condition) return "";
+
+	if (condition.compare) {
+		fnc = function (data, value, id, options) {
+			value           = self._retrieve(value);
+			options.compare = self._retrieve(options.compare);
+			options.then    = self._retrieve(options.then);
+			options.else    = self._retrieve(options.else);
+
+			var html = value == options.compare ? options.then : (options.else ? options.else : "");
+
+			$("[he-bind=\"" + id + "\"]").html(html);
+		}
+	} else {
+		fnc = function (data, value, id, options) {
+			var html = self._retrieve(value);
+			$("[he-bind=\"" + id + "\"]").html(html);
+		}
+	}
+
+	data   = condition.ref.substr(1);
+	bindId = He.data.bind(data, fnc, condition);
+
+	return "he-bind=\"" + bindId + "\"";
 }
 
 Template.prototype.compile = function (template, data) {
@@ -292,97 +447,4 @@ Template.prototype.compileLink = function (template) {
 	}
 
 	return template;
-}
-
-Template.prototype.applyTags = function (container) {
-	var self = this;
-
-	$(container).find("[he-link]").click(function (event) {
-		event.preventDefault();
-		He.router.goTo( $(this).attr("he-link") );
-	});
-}
-
-Template.prototype.load = function (template, cache) {
-	var self = this;
-
-	if (cache == undefined) {
-		cache = false;
-	}
-
-	function Loader (template) {
-		var
-			_self = this,
-			store;
-
-		if ( self._loaderXHR !== null ) {
-			self._loaderXHR.abort();
-		}
-
-		function genStoreKey(str) {
-			return str.replace(/[\._]*/g, "-");
-		}
-
-		this._success = function () {};
-		this._error   = function () {};
-
-		if ( cache == true && ("localStorage" in window) ) {
-
-			store = localStorage.getItem( genStoreKey(template) );
-
-			if (store) {
-				self._afterLoad(store);
-				this._success(store);
-				return this;
-			}
-
-		} else {
-			cache = false;
-		}
-
-		self._loaderXHR = $.get( self.baseDir + template )
-			.success(function (response) {
-
-				if (cache == true) {
-					localStorage.setItem( genStoreKey(template), response );
-				}
-
-				self._afterLoad(response);
-				_self._success(response);
-			})
-			.error(function () {
-				self._errorLoad();
-				_self._error();
-			});
-
-		return this;
-	}
-
-	Loader.prototype.success = function (fnc) {
-		this._success = fnc;
-		return this;
-	}
-
-	Loader.prototype.error = function (fnc) {
-		this._error = fnc;
-		return this;
-	}
-
-	this._beforeLoad();
-
-	return new Loader(template);
-}
-
-Template.prototype.run = function () {
-	var self = this;
-
-	$("[he-template]").each(function () {
-		var $container = $(this);
-
-		var $c = $("#" + $container.attr("he-template") );
-
-		$container.html( self.compile( $("#" + $container.attr("he-template")).text() ) );
-		
-		self.applyTags(this);
-	});
-}
+}*/

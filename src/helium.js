@@ -1,12 +1,12 @@
 (function (factory) {
 
 	if ( typeof define === "function" && define.amd ) {
-		define( "helium", ["lea"], function(Lea) { return factory(Lea); } );
+		define( "helium", ["lea", "handlebars"], function(Lea, Handlebars) { return factory(Lea, Handlebars); } );
 	} else {
-		factory(Lea);
+		factory(Lea, Handlebars);
 	}
 
-})(function ($) {
+})(function ($, Handlebars) {
 
 	"use strict";
 
@@ -41,8 +41,14 @@
 
 		$.addMethod("render", function (template) {
 			this.each(function (element) {
+
+				var tpl = Handlebars.compile(template);
+
+				$(element).html( tpl(He.data._data) );
+
+				He.template.applyTags(element);
 				
-				$(element).find("[he-bind]").each(function () {
+				/*$(element).find("[he-bind]").each(function () {
 					var id = $(this).attr('he-bind');
 					He.data.unbind(id);
 				});
@@ -52,7 +58,7 @@
 
 				$(element).find("[he-bind]").each(function (element) {
 					He.data.applyBind( $(this).attr("he-bind") );
-				});
+				});*/
 			});
 
 			return this;

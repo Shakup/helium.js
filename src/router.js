@@ -5,7 +5,7 @@
 function Router () {
 	this.routes        = {};
 	this.mode          = "hash";
-	this.basePath      = "/";
+	this.basePath      = "";
 	this._404          = function () {};
 	this._before       = function () {};
 	this._after        = function () {};
@@ -54,7 +54,7 @@ Router.prototype.exists = function (name) {
 	return name in this.routes;
 }
 
-Router.prototype.register = function (name, path, action) {
+Router.prototype.mount = function (name, path, action) {
 	if ( this.exists(name) ) {
 		He.log("[ROUTES] \"" + name + "\" already exists", "error");
 		return false;
@@ -68,7 +68,7 @@ Router.prototype.register = function (name, path, action) {
 	return this;
 }
 
-Router.prototype.register404 = function (cb) {
+Router.prototype.mount404 = function (cb) {
 	if ($.type(cb) == "function") {
 		this._404 = cb;
 	};
@@ -192,8 +192,8 @@ Router.prototype._trigger404 = function () {
 Router.prototype.run = function () {
 	var self = this, name;
 
-	this.basePath = this.basePath !== "/" ? this._stripSlashes(this.basePath) + "/" : this.basePath;
-	this.baseUrl  = location.protocol + "//" + location.host + "/" + (this.basePath !== "/" ? this.basePath + "/" : this.basePath);
+	this.basePath = this._stripSlashes(this.basePath || "") + "/";
+	this.baseUrl  = location.protocol + "//" + location.host + "/" + (this.basePath === "/" ? "" : this.basePath);
 
 	He.data.set("basePath", this.basePath);
 	He.data.set("baseUrl", this.baseUrl);
